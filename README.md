@@ -82,3 +82,81 @@ Nos aseguramos que dovecot tenga activado ssl.
 ![imagen](https://github.com/CrqzyRod/SRI2T/assets/122454007/7b7ef802-576c-42c4-856c-77cd1e710d60)
 
 ### Descripción del script.
+
+#!/bin/bash
+
+usuario=$1
+contra=$2
+ip=$3
+dominio="${usuario}.marisma.local"
+
+# Variables para las rutas de zonas
+zona_directa="/etc/bind/zones/db.marisma.local"
+zona_inversa="/etc/bind/zones/db.192.168.195"
+
+# Creación del directorio de trabajo
+sudo useradd -m -d /home/$usuario -s /bin/bash $usuario
+
+# Configuración de la contraseña del usuario
+echo "$usuario:$contra" | sudo chpasswd
+
+# Configuración subdominio DNS
+#Zona directa
+echo "\$ORIGIN ${dominio}." >> $zona_directa
+echo "@ IN A ${ip}" >> $zona_directa
+echo "www IN A ${ip}" >> $zona_directa
+#Zona inversa
+echo "${dominio}. IN NS ns.${dominio}." >> $zona_inversa
+
+service apache2 reload > /dev/null
+service bind9 reload > /dev/null
+service proftpd reload > /dev/null
+
+# Configuración del host virtual en Apache
+config="${usuario}.marisma.local"
+ruta_a="/etc/apache2/sites-available/${config}.conf"
+ruta_e="/etc/apache2/sites-enabled/${config}"
+document_root="/var/www/html/$usuario"
+indice="${document_root}/index.html"
+py="${document_root}/prueba.py"
+
+mkdir $document_root
+touch $indice
+echo "Estas accediendo al indice del usuario ${usuario}" > $indice
+
+touch py
+echo "print("Esto es una prueba en python")" > $py
+
+# Crear el archivo de configuración del host virtual
+echo "<VirtualHost *:80>
+ServerAdmin admin@$dominio
+ServerName www.$dominio
+DocumentRoot $document_root
+<Directory $document_root>
+DirectoryIndex index.html
+Options Indexes FollowSymLinks MultiViews
+AllowOverride all
+Require all granted
+</Directory>
+ErrorLog /var/log/apache2/$dominio.errorLog.log
+CustomLog /var/log/apache2/$dominio.customLog.log combined
+</VirtualHost>" | sudo tee $ruta_a > /dev/null
+
+# Verificar la configuración de Apache
+apache2ctl configtest
+
+# Habilitar el sitio y reiniciar Apache si la verificación es exitosa
+if [ $? -eq 0 ]; then
+    a2ensite $config > /dev/null
+    systemctl restart apache2
+else
+    echo "Error en la configuración de Apache. No se ha habilitado el sitio."
+fi
+
+# Configuración base de datos
+mysql -u root -e "CREATE DATABASE $usuario;"
+mysql -u root -e "CREATE USER '$usuario'@'localhost' IDENTIFIED BY  '$contra';"
+mysql -u root -e "GRANT ALL PRIVILEGES ON $usuario.* TO '$usuario'@'localhost';"
+mysql -u root -e "FLUSH PRIVILEGES;"
+
+echo "El usuario ${usuario} ha sido creado con exito"
