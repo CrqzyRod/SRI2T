@@ -106,7 +106,7 @@ echo "\$ORIGIN ${dominio}." >> $zona_directa
 echo "@ IN A ${ip}" >> $zona_directa
 echo "www IN A ${ip}" >> $zona_directa
 #Zona inversa
-echo "${dominio}. IN NS ns.${dominio}." >> $zona_inversa
+echo "${ip} IN NS ns.${dominio}." >> $zona_inversa
 
 service apache2 reload > /dev/null
 service bind9 reload > /dev/null
