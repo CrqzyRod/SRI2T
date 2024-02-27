@@ -82,7 +82,7 @@ Nos aseguramos que dovecot tenga activado ssl.
 ![imagen](https://github.com/CrqzyRod/SRI2T/assets/122454007/7b7ef802-576c-42c4-856c-77cd1e710d60)
 
 ### Descripción del script.
-
+```bash
 #!/bin/bash
 
 usuario=$1
@@ -160,3 +160,4 @@ mysql -u root -e "GRANT ALL PRIVILEGES ON $usuario.* TO '$usuario'@'localhost';"
 mysql -u root -e "FLUSH PRIVILEGES;"
 
 echo "El usuario ${usuario} ha sido creado con exito"
+```
